@@ -24,7 +24,7 @@ export const App: React.FC<AppProps> = ({ sampler }) => {
   useEffect(() => {
     sampler.start();
 
-    // Subscribe to snapshot updates throttled for terminal rendering smoothness
+    // Throttle rendering for terminal performance
     let lastRenderTime = 0;
     const unsubscribe = sampler.subscribe((snap) => {
       const now = Date.now();
@@ -53,6 +53,8 @@ export const App: React.FC<AppProps> = ({ sampler }) => {
       setShowProcessDetails(false);
     } else if (input === '2') {
       setActiveTab('processes');
+    } else if (input === '3') {
+      setActiveTab('io');
     } else if (input === '?') {
       setActiveTab((prev) => (prev === 'help' ? 'dashboard' : 'help'));
     } else if (input === 'q') {
@@ -62,6 +64,14 @@ export const App: React.FC<AppProps> = ({ sampler }) => {
       setShowProcessDetails((prev) => !prev);
     } else if (key.escape && showProcessDetails) {
       setShowProcessDetails(false);
+    } else if (key.tab) {
+      // Cycle tabs
+      setActiveTab((prev) => {
+        if (prev === 'dashboard') return 'processes';
+        if (prev === 'processes') return 'io';
+        if (prev === 'io') return 'dashboard';
+        return 'dashboard';
+      });
     }
   });
 
@@ -75,10 +85,10 @@ export const App: React.FC<AppProps> = ({ sampler }) => {
         activeTab={activeTab}
       />
 
-      {/* View 1: Main Dashboard Overview */}
+      {/* View 1: Main Overview Dashboard (Compact & fits in screen) */}
       {activeTab === 'dashboard' && (
         <Box flexDirection="column">
-          {/* Top telemetry row: CPU & Memory */}
+          {/* Top telemetry row: CPU (2-col grid) & Memory */}
           <Box flexDirection="row">
             <CpuPanel
               cpuAverage={snapshot.cpuAverage}
@@ -94,7 +104,7 @@ export const App: React.FC<AppProps> = ({ sampler }) => {
             </Box>
           </Box>
 
-          {/* Middle row: I/O Throughput & Sockets */}
+          {/* Middle row: I/O Throughput & Sockets (3-col horizontal) */}
           <Box marginTop={1}>
             <IoPanel
               diskIo={snapshot.diskIo}
@@ -106,26 +116,15 @@ export const App: React.FC<AppProps> = ({ sampler }) => {
               netTxBuffer={sampler.netTxBuffer}
             />
           </Box>
-
-          {/* Bottom row: Compact Process List */}
-          <Box marginTop={1}>
-            <ProcessTable
-              processes={snapshot.processes}
-              pageSize={6}
-              selectedProcess={selectedProcess}
-              onSelectProcess={setSelectedProcess}
-              onToggleDetails={() => setShowProcessDetails((prev) => !prev)}
-            />
-          </Box>
         </Box>
       )}
 
-      {/* View 2: Expanded Process Inspector */}
+      {/* View 2: Expanded Full-Screen Scrollable Process Inspector */}
       {activeTab === 'processes' && (
         <Box flexDirection="column">
           <ProcessTable
             processes={snapshot.processes}
-            pageSize={16}
+            pageSize={18}
             selectedProcess={selectedProcess}
             onSelectProcess={setSelectedProcess}
             onToggleDetails={() => setShowProcessDetails((prev) => !prev)}
@@ -145,7 +144,22 @@ export const App: React.FC<AppProps> = ({ sampler }) => {
         </Box>
       )}
 
-      {/* View 3: Keybindings Help Modal */}
+      {/* View 3: Dedicated Full I/O & Network View */}
+      {activeTab === 'io' && (
+        <Box flexDirection="column">
+          <IoPanel
+            diskIo={snapshot.diskIo}
+            networkIo={snapshot.networkIo}
+            sockets={snapshot.sockets}
+            diskReadBuffer={sampler.diskReadBuffer}
+            diskWriteBuffer={sampler.diskWriteBuffer}
+            netRxBuffer={sampler.netRxBuffer}
+            netTxBuffer={sampler.netTxBuffer}
+          />
+        </Box>
+      )}
+
+      {/* View 4: Keybindings Help Modal */}
       {activeTab === 'help' && (
         <HelpModal onClose={() => setActiveTab('dashboard')} />
       )}

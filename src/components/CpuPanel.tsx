@@ -22,6 +22,12 @@ export const CpuPanel: React.FC<CpuPanelProps> = ({
   const minAvg = avgBuffer.getMin();
   const maxAvg = avgBuffer.getMax();
 
+  // Pair up cores for a compact 2-column grid
+  const corePairs: [CpuCoreMetric, CpuCoreMetric | undefined][] = [];
+  for (let i = 0; i < cores.length; i += 2) {
+    corePairs.push([cores[i], cores[i + 1]]);
+  }
+
   return (
     <Box
       flexDirection="column"
@@ -41,45 +47,48 @@ export const CpuPanel: React.FC<CpuPanelProps> = ({
       </Box>
 
       {/* Average CPU Bar + Sparkline */}
-      <Box marginTop={1} justifyContent="space-between">
+      <Box marginTop={0} justifyContent="space-between">
         <Box>
           <Text color="white" bold>
             AVG:{' '}
           </Text>
-          <Gauge percent={cpuAverage} width={20} />
+          <Gauge percent={cpuAverage} width={16} />
         </Box>
         <Box marginLeft={2}>
-          <Sparkline data={avgData} min={0} max={100} width={24} />
+          <Sparkline data={avgData} min={0} max={100} width={20} />
         </Box>
       </Box>
 
-      <Box
-        marginTop={1}
-        flexDirection="column"
-        overflow="hidden"
-      >
-        {/* Render cores in rows (2 cores per row or responsive list) */}
-        {cores.slice(0, 8).map((core) => {
-          const coreData = coreBuffers[core.core]?.toArray() || [];
+      {/* 2-Column Core Grid for Compact Layout */}
+      <Box marginTop={1} flexDirection="column">
+        {corePairs.slice(0, 8).map(([coreA, coreB]) => {
+          const dataA = coreBuffers[coreA.core]?.toArray() || [];
+          const dataB = coreB ? coreBuffers[coreB.core]?.toArray() || [] : [];
+
           return (
-            <Box key={core.core} justifyContent="space-between" marginY={0}>
+            <Box key={coreA.core} justifyContent="space-between">
+              {/* Left Core */}
               <Box>
-                <Text color="dim">
-                  C{core.core.toString().padStart(2, '0')}:{' '}
-                </Text>
-                <Gauge percent={core.usagePercent} width={12} showPercent={true} />
+                <Text color="dim">C{coreA.core.toString().padStart(2, '0')}: </Text>
+                <Gauge percent={coreA.usagePercent} width={8} showPercent={true} />
+                <Box marginLeft={1}>
+                  <Sparkline data={dataA} min={0} max={100} width={8} />
+                </Box>
               </Box>
-              <Box marginLeft={1}>
-                <Sparkline data={coreData} min={0} max={100} width={16} />
-              </Box>
+
+              {/* Right Core */}
+              {coreB && (
+                <Box marginLeft={2}>
+                  <Text color="dim">C{coreB.core.toString().padStart(2, '0')}: </Text>
+                  <Gauge percent={coreB.usagePercent} width={8} showPercent={true} />
+                  <Box marginLeft={1}>
+                    <Sparkline data={dataB} min={0} max={100} width={8} />
+                  </Box>
+                </Box>
+              )}
             </Box>
           );
         })}
-        {cores.length > 8 && (
-          <Text color="dim" italic>
-            + {cores.length - 8} more cores active...
-          </Text>
-        )}
       </Box>
     </Box>
   );

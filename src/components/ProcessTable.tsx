@@ -16,20 +16,21 @@ export interface ProcessTableProps {
 
 export const ProcessTable: React.FC<ProcessTableProps> = ({
   processes,
-  pageSize = 12,
+  pageSize = 16,
   onSelectProcess,
   onKillProcess,
   selectedProcess,
   onToggleDetails,
 }) => {
   const [selectedIndex, setSelectedIndex] = useState(0);
+  const [scrollOffset, setScrollOffset] = useState(0);
   const [sortField, setSortField] = useState<SortField>('cpu');
   const [sortAsc, setSortAsc] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [isSearching, setIsSearching] = useState(false);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
 
-  // Filter processes based on search query
+  // Filter and sort processes
   const filteredProcesses = useMemo(() => {
     let list = processes;
     if (searchQuery.trim().length > 0) {
@@ -53,11 +54,20 @@ export const ProcessTable: React.FC<ProcessTableProps> = ({
     });
   }, [processes, searchQuery, sortField, sortAsc]);
 
-  // Pagination calculation
   const totalCount = filteredProcesses.length;
   const safeSelectedIndex = Math.min(Math.max(0, selectedIndex), Math.max(0, totalCount - 1));
-  const pageStart = Math.floor(safeSelectedIndex / pageSize) * pageSize;
-  const visibleProcesses = filteredProcesses.slice(pageStart, pageStart + pageSize);
+
+  // Rolling-window smooth continuous scroll calculation
+  let effectiveScroll = scrollOffset;
+  if (safeSelectedIndex >= effectiveScroll + pageSize) {
+    effectiveScroll = safeSelectedIndex - pageSize + 1;
+  } else if (safeSelectedIndex < effectiveScroll) {
+    effectiveScroll = safeSelectedIndex;
+  }
+  const maxScroll = Math.max(0, totalCount - pageSize);
+  const clampedScroll = Math.min(Math.max(0, effectiveScroll), maxScroll);
+
+  const visibleProcesses = filteredProcesses.slice(clampedScroll, clampedScroll + pageSize);
 
   // Keyboard navigation & interaction
   useInput((input, key) => {
@@ -67,36 +77,58 @@ export const ProcessTable: React.FC<ProcessTableProps> = ({
       } else if (key.backspace || key.delete) {
         setSearchQuery((prev) => prev.slice(0, -1));
         setSelectedIndex(0);
+        setScrollOffset(0);
       } else if (input && !key.ctrl && !key.meta) {
         setSearchQuery((prev) => prev + input);
         setSelectedIndex(0);
+        setScrollOffset(0);
       }
       return;
     }
 
-    // Normal Table Mode
+    // Smooth row-by-row and page scrolling
     if (key.downArrow || input === 'j') {
       const next = Math.min(safeSelectedIndex + 1, totalCount - 1);
       setSelectedIndex(next);
+      if (next >= clampedScroll + pageSize) {
+        setScrollOffset(next - pageSize + 1);
+      }
       onSelectProcess?.(filteredProcesses[next] ?? null);
     } else if (key.upArrow || input === 'k') {
       const prev = Math.max(safeSelectedIndex - 1, 0);
       setSelectedIndex(prev);
+      if (prev < clampedScroll) {
+        setScrollOffset(prev);
+      }
       onSelectProcess?.(filteredProcesses[prev] ?? null);
-    } else if (key.pageDown) {
+    } else if (key.pageDown || input === ']') {
       const next = Math.min(safeSelectedIndex + pageSize, totalCount - 1);
       setSelectedIndex(next);
+      setScrollOffset(Math.min(clampedScroll + pageSize, maxScroll));
       onSelectProcess?.(filteredProcesses[next] ?? null);
-    } else if (key.pageUp) {
+    } else if (key.pageUp || input === '[') {
       const prev = Math.max(safeSelectedIndex - pageSize, 0);
       setSelectedIndex(prev);
+      setScrollOffset(Math.max(0, clampedScroll - pageSize));
       onSelectProcess?.(filteredProcesses[prev] ?? null);
+    } else if (input === 'g') {
+      // Jump to top
+      setSelectedIndex(0);
+      setScrollOffset(0);
+      onSelectProcess?.(filteredProcesses[0] ?? null);
+    } else if (input === 'G') {
+      // Jump to bottom
+      const last = Math.max(0, totalCount - 1);
+      setSelectedIndex(last);
+      setScrollOffset(maxScroll);
+      onSelectProcess?.(filteredProcesses[last] ?? null);
     } else if (input === '/') {
       setIsSearching(true);
     } else if (key.escape) {
       if (searchQuery) {
         setSearchQuery('');
         setSelectedIndex(0);
+        setScrollOffset(0);
       }
     } else if (input === 'c') {
       setSortField('cpu');
@@ -116,7 +148,7 @@ export const ProcessTable: React.FC<ProcessTableProps> = ({
         onSelectProcess?.(curr);
         onToggleDetails?.();
       }
-    } else if (input === 'k' || input === 'x') {
+    } else if (input === 'x' || input === 'k' && !key.upArrow) {
       const curr = filteredProcesses[safeSelectedIndex];
       if (curr) {
         const signal = input === 'x' ? 'SIGKILL' : 'SIGTERM';
@@ -187,7 +219,7 @@ export const ProcessTable: React.FC<ProcessTableProps> = ({
 
       {/* Table Rows */}
       {visibleProcesses.map((proc, idx) => {
-        const absoluteIndex = pageStart + idx;
+        const absoluteIndex = clampedScroll + idx;
         const isSelected = absoluteIndex === safeSelectedIndex;
 
         return (
@@ -219,11 +251,10 @@ export const ProcessTable: React.FC<ProcessTableProps> = ({
       {/* Footer controls guide */}
       <Box marginTop={1} justifyContent="space-between">
         <Text color="dim">
-          [j/k]: Nav | [/]: Filter | [c/m/p/n]: Sort | [d]: Memory Map | [k/x]: Kill
+          [j/k or ↑/↓]: Smooth Scroll | [g/G]: Top/Bottom | [/]: Search | [c/m/p/n]: Sort | [d]: Memory Map
         </Text>
         <Text color="gray">
-          Page {Math.floor(safeSelectedIndex / pageSize) + 1} /{' '}
-          {Math.max(1, Math.ceil(totalCount / pageSize))}
+          Pos {safeSelectedIndex + 1} / {totalCount} (Viewing {clampedScroll + 1}–{Math.min(clampedScroll + pageSize, totalCount)})
         </Text>
       </Box>
     </Box>

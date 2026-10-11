@@ -2,7 +2,7 @@ import React from 'react';
 import { Box, Text } from 'ink';
 import { formatUptime } from '../utils/formatters.js';
 
-export type ActiveTab = 'dashboard' | 'processes' | 'help';
+export type ActiveTab = 'dashboard' | 'processes' | 'io' | 'help';
 
 export interface HeaderProps {
   osName: string;
@@ -60,7 +60,14 @@ export const Header: React.FC<HeaderProps> = ({
             backgroundColor={activeTab === 'processes' ? 'green' : undefined}
             bold={activeTab === 'processes'}
           >
-            {' '}[2] Processes{' '}
+            {' '}[2] Processes (Scroll){' '}
+          </Text>
+          <Text
+            color={activeTab === 'io' ? 'black' : 'white'}
+            backgroundColor={activeTab === 'io' ? 'blue' : undefined}
+            bold={activeTab === 'io'}
+          >
+            {' '}[3] Network & Disks{' '}
           </Text>
           <Text
             color={activeTab === 'help' ? 'black' : 'white'}
