@@ -49,7 +49,7 @@ export const Header: React.FC<HeaderProps> = ({
         </Box>
       </Box>
 
-      {/* Navigation Tabs Row - Responsive to terminal width */}
+      {/* Navigation Tabs Row with dark, high-contrast readable backgrounds */}
       <Box justifyContent="space-between" marginTop={0}>
         <Box>
           <Text color="dim">OS: </Text>
@@ -57,8 +57,8 @@ export const Header: React.FC<HeaderProps> = ({
         </Box>
         <Box>
           <Text
-            color={activeTab === 'dashboard' ? 'black' : 'gray'}
-            backgroundColor={activeTab === 'dashboard' ? 'cyan' : undefined}
+            color={activeTab === 'dashboard' ? 'white' : 'gray'}
+            backgroundColor={activeTab === 'dashboard' ? 'blue' : undefined}
             bold={activeTab === 'dashboard'}
           >
             {isCompact ? ' [1] Dash ' : ' [1] Dashboard '}

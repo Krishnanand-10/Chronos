@@ -28,7 +28,7 @@ export const MemoryPanel: React.FC<MemoryPanelProps> = ({ memory, memBuffer }) =
     >
       <Box justifyContent="space-between">
         <Text bold color="magenta">
-          MEMORY
+          MEMORY PRESSURE
         </Text>
         <Text color="gray">
           {formatBytes(memory.usedBytes)} / {formatBytes(memory.totalBytes)}
@@ -41,38 +41,38 @@ export const MemoryPanel: React.FC<MemoryPanelProps> = ({ memory, memBuffer }) =
           <Text color="white" bold>
             RAM:{' '}
           </Text>
-          <Gauge percent={memory.usedPercent} width={8} />
+          <Gauge percent={memory.usedPercent} width={10} />
         </Box>
         <Box marginLeft={1}>
-          <Sparkline data={memData} min={0} max={100} width={10} />
+          <Sparkline data={memData} min={0} max={100} width={12} />
         </Box>
       </Box>
 
-      {/* Detailed Memory Stats */}
+      {/* Detailed Memory Stats formatted exactly like the dashboard image */}
       <Box marginTop={1} flexDirection="column">
         <Box justifyContent="space-between">
-          <Text color="dim">Free:</Text>
+          <Text color="white">Free Memory:</Text>
           <Text color="green">{formatBytes(memory.freeBytes)}</Text>
         </Box>
         <Box justifyContent="space-between">
-          <Text color="dim">Active / Used:</Text>
-          <Text color="yellow">{formatBytes(memory.activeBytes)}</Text>
+          <Text color="white">Active / Used:</Text>
+          <Text color="green">{formatBytes(memory.activeBytes)}</Text>
         </Box>
         <Box justifyContent="space-between">
-          <Text color="dim">Available:</Text>
+          <Text color="white">Available:</Text>
           <Text color="cyan">{formatBytes(memory.availableBytes)}</Text>
         </Box>
 
         {memory.swapTotalBytes > 0 && (
           <Box marginTop={1} flexDirection="column">
             <Box justifyContent="space-between">
-              <Text color="dim">Swap:</Text>
+              <Text color="white">Swap Usage:</Text>
               <Text color="gray">
                 {formatBytes(memory.swapUsedBytes)} / {formatBytes(memory.swapTotalBytes)}
               </Text>
             </Box>
             <Box marginTop={0}>
-              <Gauge percent={swapPercent} width={10} />
+              <Gauge percent={swapPercent} width={18} showPercent={true} />
             </Box>
           </Box>
         )}
