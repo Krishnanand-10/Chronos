@@ -39,8 +39,8 @@ export const MemoryPanel: React.FC<MemoryPanelProps> = ({ memory, memBuffer }) =
       <Box marginTop={1} justifyContent="space-between">
         <Box>
           <Text color="white" bold>
-            RAM:
-          </Text>{' '}
+            RAM:{' '}
+          </Text>
           <Gauge percent={memory.usedPercent} width={20} />
         </Box>
         <Box marginLeft={2}>

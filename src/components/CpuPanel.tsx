@@ -44,8 +44,8 @@ export const CpuPanel: React.FC<CpuPanelProps> = ({
       <Box marginTop={1} justifyContent="space-between">
         <Box>
           <Text color="white" bold>
-            AVG:
-          </Text>{' '}
+            AVG:{' '}
+          </Text>
           <Gauge percent={cpuAverage} width={20} />
         </Box>
         <Box marginLeft={2}>
