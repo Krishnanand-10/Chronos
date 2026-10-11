@@ -22,11 +22,7 @@ export const CpuPanel: React.FC<CpuPanelProps> = ({
   const minAvg = avgBuffer.getMin();
   const maxAvg = avgBuffer.getMax();
 
-  // Pair up cores for a compact 2-column grid
-  const corePairs: [CpuCoreMetric, CpuCoreMetric | undefined][] = [];
-  for (let i = 0; i < cores.length; i += 2) {
-    corePairs.push([cores[i], cores[i + 1]]);
-  }
+  const displayedCores = cores.slice(0, 8);
 
   return (
     <Box
@@ -38,11 +34,10 @@ export const CpuPanel: React.FC<CpuPanelProps> = ({
     >
       <Box justifyContent="space-between">
         <Text bold color="cyan">
-          CPU UTILIZATION ({cores.length} Cores)
+          CPU ({cores.length} Cores)
         </Text>
         <Text color="gray">
-          Min: <Text color="green">{minAvg.toFixed(1)}%</Text> | Max:{' '}
-          <Text color="red">{maxAvg.toFixed(1)}%</Text>
+          <Text color="green">{minAvg.toFixed(0)}%</Text>-<Text color="red">{maxAvg.toFixed(0)}%</Text>
         </Text>
       </Box>
 
@@ -52,40 +47,26 @@ export const CpuPanel: React.FC<CpuPanelProps> = ({
           <Text color="white" bold>
             AVG:{' '}
           </Text>
-          <Gauge percent={cpuAverage} width={16} />
+          <Gauge percent={cpuAverage} width={8} />
         </Box>
-        <Box marginLeft={2}>
-          <Sparkline data={avgData} min={0} max={100} width={20} />
+        <Box marginLeft={1}>
+          <Sparkline data={avgData} min={0} max={100} width={10} />
         </Box>
       </Box>
 
-      {/* 2-Column Core Grid for Compact Layout */}
+      {/* Core Rows: Compact gauge & sparklines to fit 40-col split */}
       <Box marginTop={1} flexDirection="column">
-        {corePairs.slice(0, 8).map(([coreA, coreB]) => {
-          const dataA = coreBuffers[coreA.core]?.toArray() || [];
-          const dataB = coreB ? coreBuffers[coreB.core]?.toArray() || [] : [];
-
+        {displayedCores.map((core) => {
+          const coreData = coreBuffers[core.core]?.toArray() || [];
           return (
-            <Box key={coreA.core} justifyContent="space-between">
-              {/* Left Core */}
+            <Box key={core.core} justifyContent="space-between">
               <Box>
-                <Text color="dim">C{coreA.core.toString().padStart(2, '0')}: </Text>
-                <Gauge percent={coreA.usagePercent} width={8} showPercent={true} />
-                <Box marginLeft={1}>
-                  <Sparkline data={dataA} min={0} max={100} width={8} />
-                </Box>
+                <Text color="dim">C{core.core.toString().padStart(2, '0')}: </Text>
+                <Gauge percent={core.usagePercent} width={7} showPercent={true} />
               </Box>
-
-              {/* Right Core */}
-              {coreB && (
-                <Box marginLeft={2}>
-                  <Text color="dim">C{coreB.core.toString().padStart(2, '0')}: </Text>
-                  <Gauge percent={coreB.usagePercent} width={8} showPercent={true} />
-                  <Box marginLeft={1}>
-                    <Sparkline data={dataB} min={0} max={100} width={8} />
-                  </Box>
-                </Box>
-              )}
+              <Box marginLeft={1}>
+                <Sparkline data={coreData} min={0} max={100} width={8} />
+              </Box>
             </Box>
           );
         })}
