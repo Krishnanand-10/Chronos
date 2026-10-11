@@ -1,4 +1,5 @@
 import os from 'os';
+import { exec } from 'child_process';
 import si from 'systeminformation';
 import { RingBuffer } from './RingBuffer.js';
 import {
@@ -58,6 +59,10 @@ export class TelemetrySampler {
   public readonly osName: string;
   public readonly hostname: string;
   public readonly kernel: string;
+
+  private lastNetstatTime: number = 0;
+  private lastNetstatRx: number = 0;
+  private lastNetstatTx: number = 0;
 
   private listeners: ((snapshot: SystemSnapshot) => void)[] = [];
 
@@ -226,21 +231,42 @@ export class TelemetrySampler {
       ]);
 
       // Network Stats
+      let totalRxSec = 0;
+      let totalTxSec = 0;
       if (netStats.status === 'fulfilled' && Array.isArray(netStats.value) && netStats.value.length > 0) {
-        let totalRxSec = 0;
-        let totalTxSec = 0;
         for (const iface of netStats.value) {
           if (iface.rx_sec && iface.rx_sec > 0) totalRxSec += iface.rx_sec;
           if (iface.tx_sec && iface.tx_sec > 0) totalTxSec += iface.tx_sec;
         }
-        this.currentNetworkIo = {
-          rxBytesSec: totalRxSec,
-          txBytesSec: totalTxSec,
-          totalBytesSec: totalRxSec + totalTxSec,
-        };
-        this.netRxBuffer.push(totalRxSec);
-        this.netTxBuffer.push(totalTxSec);
       }
+
+      // Windows network throughput fallback using netstat delta
+      if (totalRxSec === 0 && totalTxSec === 0 && process.platform === 'win32') {
+        const netstatBytes = await this.queryWindowsNetstatBytes();
+        if (netstatBytes) {
+          const now = Date.now();
+          if (this.lastNetstatTime > 0 && this.lastNetstatRx > 0) {
+            const dtSec = (now - this.lastNetstatTime) / 1000;
+            if (dtSec > 0) {
+              const rxDelta = Math.max(0, netstatBytes.rx - this.lastNetstatRx);
+              const txDelta = Math.max(0, netstatBytes.tx - this.lastNetstatTx);
+              totalRxSec = rxDelta / dtSec;
+              totalTxSec = txDelta / dtSec;
+            }
+          }
+          this.lastNetstatTime = now;
+          this.lastNetstatRx = netstatBytes.rx;
+          this.lastNetstatTx = netstatBytes.tx;
+        }
+      }
+
+      this.currentNetworkIo = {
+        rxBytesSec: totalRxSec,
+        txBytesSec: totalTxSec,
+        totalBytesSec: totalRxSec + totalTxSec,
+      };
+      this.netRxBuffer.push(totalRxSec);
+      this.netTxBuffer.push(totalTxSec);
 
       // Disk I/O
       if (diskStats.status === 'fulfilled' && diskStats.value) {
@@ -340,6 +366,20 @@ export class TelemetrySampler {
       kernel: this.kernel,
       processes: this.currentProcesses,
     };
+  }
+
+  private queryWindowsNetstatBytes(): Promise<{ rx: number; tx: number } | null> {
+    return new Promise((resolve) => {
+      exec('netstat -e', (err, stdout) => {
+        if (err || !stdout) return resolve(null);
+        const match = stdout.match(/Bytes\s+(\d+)\s+(\d+)/);
+        if (match && match[1] && match[2]) {
+          resolve({ rx: Number(match[1]), tx: Number(match[2]) });
+        } else {
+          resolve(null);
+        }
+      });
+    });
   }
 
   private notifySnapshot(): void {
