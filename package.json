@@ -1,0 +1,40 @@
+{
+  "name": "chronos-tui",
+  "version": "1.0.0",
+  "description": "Chronos — OS Telemetry & Terminal Dashboard",
+  "type": "module",
+  "main": "dist/index.js",
+  "bin": {
+    "chronos": "dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "start": "tsx src/index.tsx",
+    "dev": "tsx watch src/index.tsx",
+    "test": "tsx test/ringbuffer.test.ts && tsx test/sampler.test.ts"
+  },
+  "keywords": [
+    "tui",
+    "terminal",
+    "dashboard",
+    "telemetry",
+    "ink",
+    "react",
+    "monitoring",
+    "system"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "chalk": "^6.0.1",
+    "ink": "^8.0.0",
+    "react": "^19.3.0",
+    "systeminformation": "^5.33.15"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.5",
+    "@types/react": "^19.3.0",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2"
+  }
+}
