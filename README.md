@@ -8,13 +8,17 @@
 
 * **50ms High-Frequency Metric Sampling:** Captures per-core CPU utilization and memory pressure at 20Hz using delta calculations from Node's `os` counters and `systeminformation`.
 * **Zero-GC Circular Ring Buffer:** Timeseries data is managed in fixed-size typed `Float64Array` buffers. Pushing and querying metrics produce zero dynamic V8 garbage collection allocations.
-* **Interactive Terminal User Interface:** Declarative layout powered by React and Ink featuring live multi-level ASCII sparklines (` ▂▃▄▅▆▇█`), dynamic gauges, and network/disk throughput meters.
-* **Full Process Inspector:**
-  * Interactive table with keyboard navigation (`j` / `k` or arrows, `PgUp` / `PgDn`).
-  * Real-time search and filter mode (`/`).
-  * Instant column sorting by CPU (`c`), Memory (`m`), PID (`p`), or Name (`n`).
-  * Memory map modal inspection (`d` / `Enter`) showing RSS, Virtual Memory (VSZ), priority, user, and command path.
-  * Process termination signals: graceful `SIGTERM` (`k`) or forceful `SIGKILL` (`x`).
+* **Full-Screen Alternate Buffer Mode:** Runs in-place full-screen (`\x1b[?1049h`) just like `btop` or `htop`. Never clutters terminal scrollback history and cleanly restores your shell prompt upon exit.
+* **Compact Multi-Core Grid:** Automatically displays CPU cores in a responsive 2-column side-by-side grid, allowing 16+ core machines to display cleanly on standard terminal windows without overflow.
+* **Horizontal 3-Column I/O Matrix:** Network throughput (Rx/Tx), Disk throughput (Read/Write), and socket connection states (`ESTABLISHED`, `LISTEN`, `TIME_WAIT`, `CLOSE_WAIT`) arranged side-by-side.
+* **Full-Screen Process Inspector with Continuous Rolling Scroll:**
+  * **Smooth Rolling-Window Scrolling:** Navigate through 300+ processes row-by-row using `j`/`k` or arrow keys.
+  * **Instant Jumps:** Jump to top (`g`) or bottom (`G`), and page up/down with `[` / `]`.
+  * **Real-Time Search & Filter:** Press `/` to filter processes by name, PID, or user.
+  * **Instant Column Sorting:** Sort by CPU (`c`), Memory (`m`), PID (`p`), or Name (`n`).
+  * **Deep Memory Map Inspection:** Press `d` to inspect Resident Set Size (RSS), Virtual Memory (VSZ), priority, user, state, and execution path.
+  * **Process Termination Signals:** Send graceful `SIGTERM` (`k`) or forceful `SIGKILL` (`x`) signals directly from the TUI.
+* **High-Contrast Readability:** Crisp, theme-consistent color palette (blue/cyan accents, yellow headers) engineered for dark and light terminal emulators.
 
 ---
 
@@ -28,19 +32,19 @@ chronos/
 │   │   ├── Sampler.ts           # 50ms OS metrics collection engine
 │   │   └── types.ts             # Strongly typed telemetry interfaces
 │   ├── components/
-│   │   ├── Sparkline.tsx        # High-resolution ASCII sparkline renderer
+│   │   ├── Sparkline.tsx        # High-resolution ASCII sparkline renderer ( ▂▃▄▅▆▇█)
 │   │   ├── Gauge.tsx            # Percentage progress gauge with color thresholds
-│   │   ├── CpuPanel.tsx         # Multi-core CPU utilization & history
+│   │   ├── CpuPanel.tsx         # 2-column compact multi-core CPU utilization & history
 │   │   ├── MemoryPanel.tsx      # RAM & Swap allocation breakdown
-│   │   ├── IoPanel.tsx          # Disk I/O, Network speeds, Socket states
-│   │   ├── ProcessTable.tsx     # Keyboard-driven process list
+│   │   ├── IoPanel.tsx          # 3-column Disk I/O, Network speeds, Socket states
+│   │   ├── ProcessTable.tsx     # Smooth-scrolling process inspector table
 │   │   ├── ProcessDetails.tsx   # Detailed process memory map modal
-│   │   ├── Header.tsx           # Uptime, host metadata, and tab bar
+│   │   ├── Header.tsx           # Uptime, host metadata, and high-contrast tab bar
 │   │   └── HelpModal.tsx        # Keyboard cheat sheet overlay
 │   ├── utils/
 │   │   └── formatters.ts        # Unit formatting (bytes, speeds, uptime)
 │   ├── App.tsx                  # Root Ink application component
-│   └── index.tsx                # CLI binary entry point
+│   └── index.tsx                # CLI binary entry point (alternate screen buffer)
 ├── test/
 │   ├── ringbuffer.test.ts       # Zero-allocation ring buffer tests
 │   └── sampler.test.ts          # 50ms live OS sampler tests
@@ -50,26 +54,35 @@ chronos/
 
 ---
 
-## ⌨️ Keyboard Shortcuts
+## ⌨️ Views & Keyboard Shortcuts
 
-| Shortcut | Description |
+### View Tabs
+| Key | View |
 | :--- | :--- |
-| `1` | Switch to **Overview Dashboard** view |
-| `2` | Switch to **Process Inspector** view |
+| `1` | **Dashboard View** — Compact overview with CPU grid, RAM, and I/O rates |
+| `2` | **Process Inspector** — Full-screen continuous rolling process table |
+| `3` | **Network & Disks** — Expanded I/O throughput & socket states |
+| `Tab` | Cycle through views (`1` ➔ `2` ➔ `3` ➔ `1`) |
 | `?` | Toggle **Help & Keybindings** modal |
-| `j` / `↓` | Move selection down |
-| `k` / `↑` | Move selection up |
-| `PgUp` / `PgDn` | Page through processes |
+| `q` / `Ctrl+C` | Exit Chronos and restore terminal screen |
+
+### Process Inspector Navigation (Tab `[2]`)
+| Shortcut | Action |
+| :--- | :--- |
+| `j` / `↓` | Move selection down (continuous smooth scroll) |
+| `k` / `↑` | Move selection up (continuous smooth scroll) |
+| `[` / `]` (or `PgUp` / `PgDn`) | Scroll table by page |
+| `g` | Jump to the **top** (first process) |
+| `G` | Jump to the **bottom** (last process) |
 | `/` | Enter **Search / Filter** mode |
 | `Esc` | Clear search query or close detail modal |
-| `c` | Sort processes by **CPU %** |
-| `m` | Sort processes by **Memory %** |
+| `c` | Sort processes by **CPU %** (toggle asc/desc) |
+| `m` | Sort processes by **Memory %** (toggle asc/desc) |
 | `p` | Sort processes by **PID** |
 | `n` | Sort processes by **Process Name** |
-| `d` / `Enter` | Open **Memory Map & Process Details** modal |
-| `k` | Terminate process gracefully (`SIGTERM`) |
-| `x` | Force kill process (`SIGKILL`) |
-| `q` / `Ctrl+C` | Exit Chronos safely |
+| `d` / `Enter` | Inspect **Memory Map & Process Details** (RSS, VSZ, path) |
+| `k` | Send graceful termination signal (`SIGTERM`) |
+| `x` | Send forceful termination signal (`SIGKILL`) |
 
 ---
 
@@ -77,15 +90,19 @@ chronos/
 
 ### Prerequisites
 * Node.js v18+ (tested on Node v24)
-* A modern terminal emulator (Windows Terminal, iTerm2, Alacritty, Kitty, or native terminal)
+* A modern terminal emulator (Windows Terminal, PowerShell, iTerm2, Alacritty, Kitty)
 
 ### Running Chronos
 
 ```bash
+# Clone the repository
+git clone https://github.com/Krishnanand-10/Chronos.git
+cd Chronos
+
 # Install dependencies
 npm install
 
-# Run directly with tsx
+# Run the live TUI
 npm start
 
 # Or compile and run the production build
@@ -93,18 +110,19 @@ npm run build
 node dist/index.js
 ```
 
-### Running Tests
+### Running the Test Suite
 ```bash
-npx tsx test/ringbuffer.test.ts
-npx tsx test/sampler.test.ts
+npm test
 ```
 
 ---
 
 ## 🔬 Design Decisions & Performance
 
-1. **Decoupled Sampling from TUI Rendering:**
-   * High-frequency telemetry runs at **50ms** directly into the `Float64Array` ring buffers.
-   * Ink's React state update is throttled to **100ms (~10 FPS)** to prevent terminal emulator cursor flicker and buffer tearing while maintaining responsive UI charts.
-2. **Zero Dynamic GC Allocation:**
-   * Traditional JavaScript array manipulations (`push`/`shift`) at 20Hz create constant heap garbage and trigger V8 GC pauses. `RingBuffer` uses pre-allocated typed arrays that overwrite in $O(1)$ without allocating objects.
+1. **Decoupled 50ms Sampling vs 100ms Rendering:**
+   * Hardware metrics query the OS performance counters every **50ms (20Hz)** into typed arrays.
+   * Ink's React reconciler updates are batched at **100ms (~10 FPS)** to eliminate terminal screen tearing while maintaining buttery smooth sparklines.
+2. **Zero Dynamic Garbage Collection Allocations:**
+   * Pushing data points to standard JavaScript arrays (`Array.push` / `shift`) at 20Hz creates continuous garbage collection pressure. Chronos uses a custom **`Float64Array` Circular Ring Buffer**, guaranteeing zero dynamic memory allocations on every tick.
+3. **Alternate Screen Buffer:**
+   * Uses terminal control sequences (`\x1b[?1049h` / `\x1b[?1049l`) to prevent polluting the terminal scrollback history.

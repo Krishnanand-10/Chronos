@@ -21,7 +21,7 @@ export const Header: React.FC<HeaderProps> = ({
     <Box
       flexDirection="column"
       borderStyle="classic"
-      borderColor="white"
+      borderColor="cyan"
       paddingX={1}
       marginBottom={1}
     >
@@ -49,28 +49,28 @@ export const Header: React.FC<HeaderProps> = ({
         </Box>
         <Box>
           <Text
-            color={activeTab === 'dashboard' ? 'black' : 'white'}
+            color={activeTab === 'dashboard' ? 'black' : 'gray'}
             backgroundColor={activeTab === 'dashboard' ? 'cyan' : undefined}
             bold={activeTab === 'dashboard'}
           >
             {' '}[1] Dashboard{' '}
           </Text>
           <Text
-            color={activeTab === 'processes' ? 'black' : 'white'}
-            backgroundColor={activeTab === 'processes' ? 'green' : undefined}
+            color={activeTab === 'processes' ? 'white' : 'gray'}
+            backgroundColor={activeTab === 'processes' ? 'blue' : undefined}
             bold={activeTab === 'processes'}
           >
             {' '}[2] Processes (Scroll){' '}
           </Text>
           <Text
-            color={activeTab === 'io' ? 'black' : 'white'}
-            backgroundColor={activeTab === 'io' ? 'blue' : undefined}
+            color={activeTab === 'io' ? 'white' : 'gray'}
+            backgroundColor={activeTab === 'io' ? 'magenta' : undefined}
             bold={activeTab === 'io'}
           >
             {' '}[3] Network & Disks{' '}
           </Text>
           <Text
-            color={activeTab === 'help' ? 'black' : 'white'}
+            color={activeTab === 'help' ? 'black' : 'gray'}
             backgroundColor={activeTab === 'help' ? 'yellow' : undefined}
             bold={activeTab === 'help'}
           >

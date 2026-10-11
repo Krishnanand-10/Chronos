@@ -16,7 +16,7 @@ export interface ProcessTableProps {
 
 export const ProcessTable: React.FC<ProcessTableProps> = ({
   processes,
-  pageSize = 16,
+  pageSize = 18,
   onSelectProcess,
   onKillProcess,
   selectedProcess,
@@ -57,7 +57,7 @@ export const ProcessTable: React.FC<ProcessTableProps> = ({
   const totalCount = filteredProcesses.length;
   const safeSelectedIndex = Math.min(Math.max(0, selectedIndex), Math.max(0, totalCount - 1));
 
-  // Rolling-window smooth continuous scroll calculation
+  // Rolling-window continuous scroll calculation
   let effectiveScroll = scrollOffset;
   if (safeSelectedIndex >= effectiveScroll + pageSize) {
     effectiveScroll = safeSelectedIndex - pageSize + 1;
@@ -112,12 +112,10 @@ export const ProcessTable: React.FC<ProcessTableProps> = ({
       setScrollOffset(Math.max(0, clampedScroll - pageSize));
       onSelectProcess?.(filteredProcesses[prev] ?? null);
     } else if (input === 'g') {
-      // Jump to top
       setSelectedIndex(0);
       setScrollOffset(0);
       onSelectProcess?.(filteredProcesses[0] ?? null);
     } else if (input === 'G') {
-      // Jump to bottom
       const last = Math.max(0, totalCount - 1);
       setSelectedIndex(last);
       setScrollOffset(maxScroll);
@@ -148,7 +146,7 @@ export const ProcessTable: React.FC<ProcessTableProps> = ({
         onSelectProcess?.(curr);
         onToggleDetails?.();
       }
-    } else if (input === 'x' || input === 'k' && !key.upArrow) {
+    } else if (input === 'x' || (input === 'k' && !key.upArrow)) {
       const curr = filteredProcesses[safeSelectedIndex];
       if (curr) {
         const signal = input === 'x' ? 'SIGKILL' : 'SIGTERM';
@@ -167,14 +165,14 @@ export const ProcessTable: React.FC<ProcessTableProps> = ({
     <Box
       flexDirection="column"
       borderStyle="round"
-      borderColor="green"
+      borderColor="cyan"
       paddingX={1}
       flexGrow={1}
     >
       {/* Header bar */}
       <Box justifyContent="space-between">
         <Box>
-          <Text bold color="green">
+          <Text bold color="cyan">
             PROCESS INSPECTOR{' '}
           </Text>
           <Text color="gray">
@@ -184,7 +182,7 @@ export const ProcessTable: React.FC<ProcessTableProps> = ({
         </Box>
         <Box>
           {isSearching ? (
-            <Text backgroundColor="blue" color="white">
+            <Text backgroundColor="yellow" color="black" bold>
               {' '}Search: {searchQuery}█{' '}
             </Text>
           ) : (
@@ -204,7 +202,7 @@ export const ProcessTable: React.FC<ProcessTableProps> = ({
 
       {/* Table Headers */}
       <Box marginTop={1}>
-        <Text bold color="white">
+        <Text bold color="yellow">
           {'  '}
           {'PID'.padEnd(8)}
           {'NAME'.padEnd(24)}
@@ -217,7 +215,7 @@ export const ProcessTable: React.FC<ProcessTableProps> = ({
         </Text>
       </Box>
 
-      {/* Table Rows */}
+      {/* Table Rows with high-contrast blue background selection */}
       {visibleProcesses.map((proc, idx) => {
         const absoluteIndex = clampedScroll + idx;
         const isSelected = absoluteIndex === safeSelectedIndex;
@@ -225,8 +223,9 @@ export const ProcessTable: React.FC<ProcessTableProps> = ({
         return (
           <Box key={proc.pid}>
             <Text
-              color={isSelected ? 'black' : 'white'}
-              backgroundColor={isSelected ? 'green' : undefined}
+              color={isSelected ? 'white' : 'white'}
+              backgroundColor={isSelected ? 'blue' : undefined}
+              bold={isSelected}
             >
               {isSelected ? '▶ ' : '  '}
               {proc.pid.toString().padEnd(8)}
