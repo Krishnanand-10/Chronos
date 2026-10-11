@@ -38,24 +38,24 @@ flowchart TD
     end
 
     subgraph ENGINE ["Telemetry Ingestion Engine (Sampler.ts)"]
-        T1["Tier 1: 50ms High-Frequency Fast Loop\n(CPU Ticks Delta & RAM)"]
-        T2["Tier 2: 250ms I/O & Socket Sampling\n(Net Rx/Tx Deltas, Disk Throughput, TCP States)"]
-        T3["Tier 3: 1000ms Process Inspection Loop\n(PID, %CPU, %MEM, RSS/VSZ, State)"]
+        T1["Tier 1: 50ms High-Frequency Fast Loop<br/>(CPU Ticks Delta & RAM)"]
+        T2["Tier 2: 250ms I/O & Socket Sampling<br/>(Net Rx/Tx Deltas, Disk Throughput, TCP States)"]
+        T3["Tier 3: 1000ms Process Inspection Loop<br/>(PID, %CPU, %MEM, RSS/VSZ, State)"]
     end
 
     subgraph BUFFERS ["Zero-GC Circular Memory Layer (RingBuffer.ts)"]
         RB_CPU_AVG["Float64Array: CPU Average Buffer"]
-        RB_CORES["Float64Array[]: Per-Core Ring Buffers (16 Cores)"]
-        RB_MEM["Float64Array: Memory Usage % Buffer"]
+        RB_CORES["Float64Array: Per-Core Ring Buffers"]
+        RB_MEM["Float64Array: Memory Usage Buffer"]
         RB_NET["Float64Array: Network Rx/Tx Buffers"]
         RB_DISK["Float64Array: Disk Read/Write Buffers"]
     end
 
     subgraph UI ["Terminal User Interface (Ink / React)"]
         SNAP["System Snapshot (100ms Batched Throttle)"]
-        VIEW1["View 1: Overview Dashboard\n(Compact 2-Col CPU Grid + Memory + 3-Col I/O)"]
-        VIEW2["View 2: Process Inspector\n(Rolling Window Smooth Scroll + Memory Map Modal)"]
-        VIEW3["View 3: Network & Disks\n(Expanded Throughput Charts & Socket Matrix)"]
+        VIEW1["View 1: Overview Dashboard<br/>(Compact 2-Col CPU Grid + Memory + 3-Col I/O)"]
+        VIEW2["View 2: Process Inspector<br/>(Rolling Window Smooth Scroll + Memory Map Modal)"]
+        VIEW3["View 3: Network & Disks<br/>(Expanded Throughput Charts & Socket Matrix)"]
     end
 
     CPU_TICKS --> T1
@@ -65,18 +65,18 @@ flowchart TD
     SOCKETS --> T2
     PROCS --> T3
 
-    T1 -->|Zero-Alloc O(1) Push| RB_CPU_AVG
-    T1 -->|Zero-Alloc O(1) Push| RB_CORES
-    T1 -->|Zero-Alloc O(1) Push| RB_MEM
-    T2 -->|Zero-Alloc O(1) Push| RB_NET
-    T2 -->|Zero-Alloc O(1) Push| RB_DISK
+    T1 -->|"Zero-Alloc O(1) Push"| RB_CPU_AVG
+    T1 -->|"Zero-Alloc O(1) Push"| RB_CORES
+    T1 -->|"Zero-Alloc O(1) Push"| RB_MEM
+    T2 -->|"Zero-Alloc O(1) Push"| RB_NET
+    T2 -->|"Zero-Alloc O(1) Push"| RB_DISK
 
-    RB_CPU_AVG -.->|Array View Snapshot| SNAP
-    RB_CORES -.->|Array View Snapshot| SNAP
-    RB_MEM -.->|Array View Snapshot| SNAP
-    RB_NET -.->|Array View Snapshot| SNAP
-    RB_DISK -.->|Array View Snapshot| SNAP
-    T3 -.->|Process List| SNAP
+    RB_CPU_AVG -.->|"Array View Snapshot"| SNAP
+    RB_CORES -.->|"Array View Snapshot"| SNAP
+    RB_MEM -.->|"Array View Snapshot"| SNAP
+    RB_NET -.->|"Array View Snapshot"| SNAP
+    RB_DISK -.->|"Array View Snapshot"| SNAP
+    T3 -.->|"Process List"| SNAP
 
     SNAP --> VIEW1
     SNAP --> VIEW2
