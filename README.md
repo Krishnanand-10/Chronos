@@ -22,6 +22,84 @@
 
 ---
 
+## 🏗️ System Architecture
+
+Chronos is architected with a decoupled, multi-tiered telemetry engine that isolates high-frequency hardware metric sampling from terminal frame rendering:
+
+```mermaid
+flowchart TD
+    subgraph OS ["Operating System & Hardware Counters"]
+        CPU_TICKS["Per-Core CPU Ticks (os.cpus)"]
+        MEM_COUNTERS["Memory & Swap Pressure (os.mem / si.mem)"]
+        NET_IO["Network Counters (netstat -e / si.networkStats)"]
+        DISK_IO["Disk I/O Throughput (si.disksIO)"]
+        SOCKETS["TCP Socket Table (si.networkConnections)"]
+        PROCS["Process Table & Memory Maps (si.processes)"]
+    end
+
+    subgraph ENGINE ["Telemetry Ingestion Engine (Sampler.ts)"]
+        T1["Tier 1: 50ms High-Frequency Fast Loop\n(CPU Ticks Delta & RAM)"]
+        T2["Tier 2: 250ms I/O & Socket Sampling\n(Net Rx/Tx Deltas, Disk Throughput, TCP States)"]
+        T3["Tier 3: 1000ms Process Inspection Loop\n(PID, %CPU, %MEM, RSS/VSZ, State)"]
+    end
+
+    subgraph BUFFERS ["Zero-GC Circular Memory Layer (RingBuffer.ts)"]
+        RB_CPU_AVG["Float64Array: CPU Average Buffer"]
+        RB_CORES["Float64Array[]: Per-Core Ring Buffers (16 Cores)"]
+        RB_MEM["Float64Array: Memory Usage % Buffer"]
+        RB_NET["Float64Array: Network Rx/Tx Buffers"]
+        RB_DISK["Float64Array: Disk Read/Write Buffers"]
+    end
+
+    subgraph UI ["Terminal User Interface (Ink / React)"]
+        SNAP["System Snapshot (100ms Batched Throttle)"]
+        VIEW1["View 1: Overview Dashboard\n(Compact 2-Col CPU Grid + Memory + 3-Col I/O)"]
+        VIEW2["View 2: Process Inspector\n(Rolling Window Smooth Scroll + Memory Map Modal)"]
+        VIEW3["View 3: Network & Disks\n(Expanded Throughput Charts & Socket Matrix)"]
+    end
+
+    CPU_TICKS --> T1
+    MEM_COUNTERS --> T1
+    NET_IO --> T2
+    DISK_IO --> T2
+    SOCKETS --> T2
+    PROCS --> T3
+
+    T1 -->|Zero-Alloc O(1) Push| RB_CPU_AVG
+    T1 -->|Zero-Alloc O(1) Push| RB_CORES
+    T1 -->|Zero-Alloc O(1) Push| RB_MEM
+    T2 -->|Zero-Alloc O(1) Push| RB_NET
+    T2 -->|Zero-Alloc O(1) Push| RB_DISK
+
+    RB_CPU_AVG -.->|Array View Snapshot| SNAP
+    RB_CORES -.->|Array View Snapshot| SNAP
+    RB_MEM -.->|Array View Snapshot| SNAP
+    RB_NET -.->|Array View Snapshot| SNAP
+    RB_DISK -.->|Array View Snapshot| SNAP
+    T3 -.->|Process List| SNAP
+
+    SNAP --> VIEW1
+    SNAP --> VIEW2
+    SNAP --> VIEW3
+```
+
+### Core Architectural Subsystems
+
+1. **Multi-Tier Telemetry Ingestion Pipeline:**
+   * **Tier 1 (50ms / 20Hz):** Queries raw OS tick counters (`user`, `nice`, `sys`, `idle`, `irq`) and memory counters directly from native Node.js C++ bindings. Computes delta percentages with negligible CPU overhead.
+   * **Tier 2 (250ms / 4Hz):** Samples network transfer bytes (with native delta tracking via `netstat -e` on Windows), disk transfer speeds, and categorizes TCP socket connection states (`ESTABLISHED`, `LISTEN`, `TIME_WAIT`, `CLOSE_WAIT`).
+   * **Tier 3 (1000ms / 1Hz):** Asynchronously enumerates the system process table, memory maps (RSS, VSZ), and user ownership.
+2. **Zero-Garbage-Collection Ring Buffer Invariant:**
+   * Standard JS arrays allocate new heap objects and trigger V8 garbage collection pauses when mutated at 20Hz across 16+ cores.
+   * Chronos allocates fixed-size `Float64Array` typed buffers at startup. Pushing new datapoints wraps a circular pointer in $O(1)$ without allocating any new heap memory.
+3. **Decoupled 100ms Frame Reconciliation:**
+   * While telemetry samples at 50ms, the React/Ink state reconciler is batched to 100ms (~10 FPS). This prevents terminal emulator cursor tearing and frame flashing while preserving high-resolution sparkline trends.
+4. **Terminal Lifecycle & Alternate Screen Buffer:**
+   * Chronos enters the terminal's alternate screen buffer (`\x1b[?1049h`) and hides the cursor on launch.
+   * Upon exit (`q` or `SIGINT`), a coordinated teardown stops all timers, unmounts React, flushes the screen, and restores the primary shell buffer (`\x1b[?1049l\x1b[?25h`) with zero residual prompt overlap.
+
+---
+
 ## 📁 Project Architecture
 
 ```
@@ -64,7 +142,7 @@ chronos/
 | `3` | **Network & Disks** — Expanded I/O throughput & socket states |
 | `Tab` | Cycle through views (`1` ➔ `2` ➔ `3` ➔ `1`) |
 | `?` | Toggle **Help & Keybindings** modal |
-| `q` / `Ctrl+C` | Exit Chronos and restore terminal screen |
+| `q` / `Ctrl+C` | Exit Chronos and restore terminal screen cleanly |
 
 ### Process Inspector Navigation (Tab `[2]`)
 | Shortcut | Action |
