@@ -12,16 +12,16 @@ const sampler = new TelemetrySampler({
   ioIntervalMs: 250,
 });
 
-// Clear console on launch
-process.stdout.write('\x1b[2J\x1b[0f');
+// Enter alternate screen buffer & hide cursor
+process.stdout.write('\x1b[?1049h\x1b[?25l');
 
 const appInstance = render(<App sampler={sampler} />);
 
 const cleanup = () => {
   sampler.stop();
   appInstance.unmount();
-  // Ensure cursor is visible
-  process.stdout.write('\x1b[?25h');
+  // Leave alternate screen buffer & restore cursor
+  process.stdout.write('\x1b[?1049l\x1b[?25h');
   process.exit(0);
 };
 
